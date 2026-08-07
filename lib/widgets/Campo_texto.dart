@@ -59,7 +59,7 @@ class CampoTexto extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: isInvalid ? Colors.red : AppColors.azulPersa,
+            color: isInvalid ? Colors.red : AppColors.primario,
             width: 2,
           ),
         ),

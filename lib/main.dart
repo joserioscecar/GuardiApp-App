@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/home_screen.dart';
-import '../theme/colores.dart';
+import 'screens/welcome_screen.dart';
+import 'theme/colores.dart';
 
 void main() {
   runApp(const GuardiApp());
@@ -28,14 +29,14 @@ class GuardiApp extends StatelessWidget {
       ],
       locale: const Locale('es', 'ES'),
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.azulPersa),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primario),
         useMaterial3: true,
         // Configuración global de fuentes
         textTheme: GoogleFonts.interTextTheme(
           Theme.of(context).textTheme,
         ),
       ),
-      home: const HomeScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }
