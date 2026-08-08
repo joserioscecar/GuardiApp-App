@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/colores.dart';
-import 'home_screen.dart';
+import '../controllers/signup_controller.dart';
+import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -19,14 +20,83 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _pass2Ctrl = TextEditingController();
+  final _ctrl = SignupController();
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.addListener(_actualizar);
+  }
 
   @override
   void dispose() {
+    _ctrl.removeListener(_actualizar);
+    _ctrl.dispose();
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _pass2Ctrl.dispose();
     super.dispose();
+  }
+
+  void _actualizar() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _registrar() async {
+    if (!_acceptTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes aceptar los términos y condiciones'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    if (_passCtrl.text != _pass2Ctrl.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Las contraseñas no coinciden'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      await _ctrl.registrar(
+        nombreCompleto: _nameCtrl.text.trim(),
+        correo: _emailCtrl.text.trim(),
+        password: _passCtrl.text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cuenta creada con éxito. Inicia sesión.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -47,7 +117,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   children: [
                     const SizedBox(height: 8),
 
-                    // Botón de regreso
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: Icon(Icons.arrow_back_ios_new_rounded,
@@ -154,25 +223,24 @@ class _SignupScreenState extends State<SignupScreen> {
                           shadowColor: AppColors.primario.withOpacity(0.4),
                           shape: const StadiumBorder(),
                         ),
-                        onPressed: () {
-                          if (!_acceptTerms) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Debes aceptar los términos')),
-                            );
-                            return;
-                          }
-                          if (_formKey.currentState?.validate() ?? false) {
-                            // Aquí iría la lógica de registro
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (_) => const HomeScreen()),
-                              (route) => false,
-                            );
-                          }
-                        },
-                        child: const Text(
-                          'Crear cuenta',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
-                        ),
+                        onPressed: _ctrl.cargando ? null : _registrar,
+                        child: _ctrl.cargando
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Crear cuenta',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
 

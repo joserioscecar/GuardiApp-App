@@ -1,26 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_flutter/widgets/fila_Icono.dart';
 import '../widgets/Campo_texto.dart';
 import '../widgets/label.dart';
+import '../widgets/dropdown_gris.dart';
+import '../widgets/step_indicator.dart';
+import '../widgets/botones_inferiores.dart';
 import 'success_screen.dart';
 import '../theme/colores.dart';
-import '../widgets/dropdown_gris.dart';
-import '../services/catalogo_item.dart';
-import '../services/genero_service.dart';
-import '../services/tipo_discriminacion_service.dart';
-import '../models/tipo_discriminacion.dart';
-import '../models/institucion.dart';
-import '../services/grupo_poblacional_service.dart';
-import '../services/entorno_service.dart';
-import '../services/institucion_service.dart';
-import '../services/denuncia_service.dart';
-import '../services/sesion_storage.dart';
+import '../controllers/denuncia_form_controller.dart';
 
-// ─────────────────────────────────────────────────────────
 class DenunciarScreen extends StatefulWidget {
   const DenunciarScreen({super.key, required this.onBack});
   final VoidCallback onBack;
@@ -31,53 +22,7 @@ class DenunciarScreen extends StatefulWidget {
 
 class _DenunciarScreenState extends State<DenunciarScreen> {
   int _paso = 0;
-
-  bool _cargando = true;
-  bool _error = false;
-
-  List<String> _generos = [];
-  Map<String, String> _generoIdPorNombre = {};
-  List<String> _tipos = [];
-  Map<String, String> _tipoIdPorNombre = {};
-  Map<String, List<SubtipoDiscriminacion>> _subtiposPorTipoId = {};
-  List<String> _grupos = [];
-  Map<String, String> _grupoIdPorNombre = {};
-  List<String> _entornos = [];
-  Map<String, String> _entornoIdPorNombre = {};
-  List<Institucion> _instituciones = [];
-  Map<String, String> _institucionIdPorNombre = {};
-
-  String descripcion     = '';
-  String lugar           = '';
-  String fecha           = '';
-  String tipoDenunciante = '';
-  String genero          = '';
-  String edad            = '';
-  String discriminacion  = '';
-  String subDisc         = '';
-  String grupo           = '';
-  String entorno         = '';
-  List<String> personas  = [];
-  String personaTemp     = '';
-  String institucion     = '';
-
-  final Map<String, bool> touched = {
-    'descripcion': false,
-    'lugar': false,
-    'fecha': false,
-    'tipoDenunciante': false,
-    'genero': false,
-    'edad': false,
-    'discriminacion': false,
-    'subDisc': false,
-    'grupo': false,
-    'entorno': false,
-    'personas': false,
-    'institucion': false,
-  };
-
-  List<XFile> imagenes = [];
-  final ImagePicker _picker = ImagePicker();
+  final _ctrl = DenunciaFormController();
 
   static const _titulosPaso = [
     'Detalles de la Denuncia',
@@ -89,151 +34,27 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
   @override
   void initState() {
     super.initState();
-    fecha = DateFormat('dd/MM/yyyy', 'es_ES').format(DateTime.now());
-    _cargarCatalogo();
+    _ctrl.fecha = DateFormat('dd/MM/yyyy', 'es_ES').format(DateTime.now());
+    _ctrl.addListener(_actualizar);
+    _ctrl.cargarCatalogo();
   }
 
-  Future<void> _cargarCatalogo() async {
-    setState(() {
-      _cargando = true;
-      _error = false;
-    });
-    try {
-      final results = await Future.wait([
-        GeneroService().listar(),
-        TipoDiscriminacionService().listar(),
-        GrupoPoblacionalService().listar(),
-        EntornoService().listar(),
-        InstitucionService().listar(),
-      ]);
-      if (!mounted) return;
-
-      final generos = results[0] as List<CatalogoItem>;
-      final tipos = results[1] as List<TipoDiscriminacion>;
-      final grupos = results[2] as List<CatalogoItem>;
-      final entornos = results[3] as List<CatalogoItem>;
-      final instituciones = results[4] as List<Institucion>;
-
-      final generoIdPorNombre = <String, String>{
-        for (final g in generos) g.nombre: g.id,
-      };
-      final tipoIdPorNombre = <String, String>{
-        for (final t in tipos) t.nombre: t.id,
-      };
-      final grupoIdPorNombre = <String, String>{
-        for (final g in grupos) g.nombre: g.id,
-      };
-      final entornoIdPorNombre = <String, String>{
-        for (final e in entornos) e.nombre: e.id,
-      };
-      final institucionIdPorNombre = <String, String>{
-        for (final i in instituciones) i.nombre: i.id,
-      };
-      final subtiposPorTipoId = <String, List<SubtipoDiscriminacion>>{};
-      for (final t in tipos) {
-        if (t.subtipos.isNotEmpty) {
-          subtiposPorTipoId[t.id] = t.subtipos;
-        }
-      }
-
-      setState(() {
-        _generos = generos.map((g) => g.nombre).toList();
-        _generoIdPorNombre = generoIdPorNombre;
-        _tipos = tipos.map((t) => t.nombre).toList();
-        _tipoIdPorNombre = tipoIdPorNombre;
-        _subtiposPorTipoId = subtiposPorTipoId;
-        _grupos = grupos.map((g) => g.nombre).toList();
-        _grupoIdPorNombre = grupoIdPorNombre;
-        _entornos = entornos.map((e) => e.nombre).toList();
-        _entornoIdPorNombre = entornoIdPorNombre;
-        _instituciones = instituciones;
-        _institucionIdPorNombre = institucionIdPorNombre;
-        _cargando = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      debugPrint('Error cargando catálogo: $e');
-      setState(() {
-        _error = true;
-        _cargando = false;
-      });
-    }
+  @override
+  void dispose() {
+    _ctrl.removeListener(_actualizar);
+    _ctrl.dispose();
+    super.dispose();
   }
 
-  bool _esPasoValido() {
-    switch (_paso) {
-      case 0:
-        return tipoDenunciante.isNotEmpty &&
-            genero.isNotEmpty &&
-            edad.isNotEmpty &&
-            discriminacion.isNotEmpty &&
-            descripcion.isNotEmpty &&
-            grupo.isNotEmpty &&
-            entorno.isNotEmpty &&
-            personas.isNotEmpty;
-      case 1:
-        return fecha.isNotEmpty && lugar.isNotEmpty;
-      case 2:
-        return institucion.isNotEmpty;
-      case 3:
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  void _marcarTocados() {
-    setState(() {
-      switch (_paso) {
-        case 0:
-          touched['tipoDenunciante'] = true;
-          touched['genero'] = true;
-          touched['edad'] = true;
-          touched['discriminacion'] = true;
-          touched['descripcion'] = true;
-          touched['grupo'] = true;
-          touched['entorno'] = true;
-          touched['personas'] = true;
-          break;
-        case 1:
-          touched['fecha'] = true;
-          touched['lugar'] = true;
-          break;
-        case 2:
-          touched['institucion'] = true;
-          break;
-      }
-    });
-  }
-
-  void _agregarPersona() {
-    if (personaTemp.trim().isEmpty) {
-      setState(() {
-        touched['personas'] = true;
-      });
-      return;
-    }
-
-    if (!personas.contains(personaTemp.trim())) {
-      setState(() {
-        personas.add(personaTemp.trim());
-        personaTemp = '';
-        touched['personas'] = true;
-      });
-    }
-  }
-
-  void _eliminarPersona(int index) {
-    setState(() {
-      personas.removeAt(index);
-    });
+  void _actualizar() {
+    if (mounted) setState(() {});
   }
 
   void _siguiente() {
-    if (_esPasoValido()) {
+    if (_ctrl.esPasoValido(_paso)) {
       setState(() => _paso++);
     } else {
-      _marcarTocados();
+      _ctrl.marcarTocados(_paso);
     }
   }
 
@@ -265,50 +86,13 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
       ),
     );
     if (picked != null) {
-      setState(() {
-        fecha = DateFormat('dd/MM/yyyy', 'es_ES').format(picked);
-        touched['fecha'] = true;
-      });
-    }
-  }
-
-  Future<void> _seleccionarImagenes() async {
-    try {
-      final List<XFile> seleccionadas = await _picker.pickMultiImage();
-      if (seleccionadas.isNotEmpty) {
-        setState(() => imagenes.addAll(seleccionadas));
-      }
-    } catch (e) {
-      debugPrint('Error al seleccionar imágenes: $e');
+      _ctrl.fecha = DateFormat('dd/MM/yyyy', 'es_ES').format(picked);
+      _ctrl.touched['fecha'] = true;
+      _actualizar();
     }
   }
 
   Future<void> _enviar() async {
-    final subTipoId = _subtiposPorTipoId[_tipoIdPorNombre[discriminacion]]
-            ?.firstWhere(
-              (st) => st.nombre == subDisc,
-              orElse: () => SubtipoDiscriminacion(id: '', nombre: subDisc),
-            )
-            .id ??
-        '';
-
-    final campos = <String, String>{
-      'TipoDenunciante': tipoDenunciante == 'Víctima' ? 'Victima' : 'Testigo',
-      'Discriminacion': _tipoIdPorNombre[discriminacion] ?? '',
-      'SubTipo': subTipoId,
-      'Genero': _generoIdPorNombre[genero] ?? '',
-      'Edad': edad,
-      'Grupo': _grupoIdPorNombre[grupo] ?? '',
-      'Entorno': _entornoIdPorNombre[entorno] ?? '',
-      'InstitucionId': _institucionIdPorNombre[institucion] ?? '',
-      'Descripcion': descripcion,
-      'Fecha': fecha,
-      'Lugar': lugar,
-    };
-
-    debugPrint('--- ENVIANDO DENUNCIA ---');
-    campos.forEach((key, value) => debugPrint('$key: $value'));
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -318,28 +102,19 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
     );
 
     try {
-      final token = await SesionStorage().obtenerToken();
-      if (token == null || token.isEmpty) {
-        if (mounted) Navigator.pop(context);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Debes iniciar sesión para enviar una denuncia'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      final radicado = await DenunciaService().enviar(
-        token: token,
-        campos: campos,
-        personas: personas,
-        rutasImagenes: imagenes.map((img) => img.path).toList(),
-      );
+      final radicado = await _ctrl.enviarDenuncia();
       if (!mounted) return;
       Navigator.pop(context);
+
+      if (radicado == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Debes iniciar sesión para enviar una denuncia'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -379,13 +154,13 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
   }
 
   Widget _buildCuerpo() {
-    if (_cargando) {
+    if (_ctrl.cargando) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primario),
       );
     }
 
-    if (_error) {
+    if (_ctrl.errorCatalogo) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -401,7 +176,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _cargarCatalogo,
+                onPressed: () => _ctrl.cargarCatalogo(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primario,
                   shape: RoundedRectangleBorder(
@@ -424,7 +199,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
 
     return Column(
       children: [
-        _StepIndicator(pasoActual: _paso),
+        StepIndicator(pasoActual: _paso),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           child: Text(
@@ -443,8 +218,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
             child: _buildPasoActual(),
           ),
         ),
-        // ── Botones Anterior / Siguiente ──
-        _BotonesInferiores(
+        BotonesInferiores(
           paso: _paso,
           totalPasos: 4,
           onAnterior: _anterior,
@@ -465,14 +239,6 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
     }
   }
 
-  List<String> get _subtiposSeleccionados {
-    final tipoId = _tipoIdPorNombre[discriminacion];
-    if (tipoId == null) return [];
-    return (_subtiposPorTipoId[tipoId] ?? const [])
-        .map((s) => s.nombre)
-        .toList();
-  }
-
   // ─────────── PASO 1 ───────────
   Widget _buildPaso1() {
     return Column(
@@ -482,21 +248,23 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         Container(
           decoration: BoxDecoration(
             border: Border.all(
-              color: tipoDenunciante.isEmpty && touched['tipoDenunciante']!
-                  ? Colors.red : Colors.transparent,
+              color: _ctrl.tipoDenunciante.isEmpty && _ctrl.touched['tipoDenunciante']!
+                  ? Colors.red
+                  : Colors.transparent,
               width: 2,
             ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: ['Víctima', 'Testigo'].map((op) {
-              final sel = tipoDenunciante == op;
+              final sel = _ctrl.tipoDenunciante == op;
               return Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() {
-                    tipoDenunciante = op;
-                    touched['tipoDenunciante'] = true;
-                  }),
+                  onTap: () {
+                    _ctrl.tipoDenunciante = op;
+                    _ctrl.touched['tipoDenunciante'] = true;
+                    _actualizar();
+                  },
                   child: Container(
                     margin: EdgeInsets.only(
                       right: op == 'Víctima' ? 6 : 0,
@@ -526,7 +294,9 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         Container(
           decoration: BoxDecoration(
             border: Border.all(
-              color: genero.isEmpty && touched['genero']! ? Colors.red : Colors.transparent,
+              color: _ctrl.genero.isEmpty && _ctrl.touched['genero']!
+                  ? Colors.red
+                  : Colors.transparent,
               width: 2,
             ),
             borderRadius: BorderRadius.circular(20),
@@ -534,13 +304,14 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           padding: const EdgeInsets.all(4),
           child: Wrap(
             spacing: 8,
-            children: _generos.map((g) {
-              final sel = genero == g;
+            children: _ctrl.generos.map((g) {
+              final sel = _ctrl.genero == g;
               return GestureDetector(
-                onTap: () => setState(() {
-                  genero = g;
-                  touched['genero'] = true;
-                }),
+                onTap: () {
+                  _ctrl.genero = g;
+                  _ctrl.touched['genero'] = true;
+                  _actualizar();
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
@@ -562,77 +333,83 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         const SizedBox(height: 20),
         Label('Edad'),
         CampoTexto(
-          valor: edad,
+          valor: _ctrl.edad,
           placeholder: 'Ej: 25',
           keyboardType: TextInputType.number,
           maxLength: 3,
-          isInvalid: edad.isEmpty && touched['edad']!,
-          onValorChange: (v) => setState(() {
-            edad = v;
-            if (v.isNotEmpty) touched['edad'] = true;
-          }),
+          isInvalid: _ctrl.edad.isEmpty && _ctrl.touched['edad']!,
+          onValorChange: (v) {
+            _ctrl.edad = v;
+            if (v.isNotEmpty) _ctrl.touched['edad'] = true;
+            _actualizar();
+          },
         ),
         const SizedBox(height: 20),
         Label('¿Qué tipo de situación deseas denunciar?'),
         DropdownGris(
-          valor: discriminacion,
+          valor: _ctrl.discriminacion,
           placeholder: 'Selecciona la situación',
-          opciones: _tipos,
-          isInvalid: discriminacion.isEmpty && touched['discriminacion']!,
-          onSeleccionar: (v) => setState(() {
-            discriminacion = v;
-            subDisc = '';
-            touched['discriminacion'] = true;
-          }),
+          opciones: _ctrl.tipos,
+          isInvalid: _ctrl.discriminacion.isEmpty && _ctrl.touched['discriminacion']!,
+          onSeleccionar: (v) {
+            _ctrl.discriminacion = v;
+            _ctrl.subDisc = '';
+            _ctrl.touched['discriminacion'] = true;
+            _actualizar();
+          },
         ),
-        if (discriminacion.isNotEmpty) ...[
+        if (_ctrl.discriminacion.isNotEmpty) ...[
           const SizedBox(height: 12),
           DropdownGris(
-            valor: subDisc,
+            valor: _ctrl.subDisc,
             placeholder: 'Selecciona el subtipo',
-            opciones: _subtiposSeleccionados,
-            isInvalid: subDisc.isEmpty && touched['subDisc']!,
-            onSeleccionar: (v) => setState(() {
-              subDisc = v;
-              touched['subDisc'] = true;
-            }),
+            opciones: _ctrl.subtiposSeleccionados,
+            isInvalid: _ctrl.subDisc.isEmpty && _ctrl.touched['subDisc']!,
+            onSeleccionar: (v) {
+              _ctrl.subDisc = v;
+              _ctrl.touched['subDisc'] = true;
+              _actualizar();
+            },
           ),
         ],
         const SizedBox(height: 20),
         Label('¿Qué ocurrió?'),
         CampoTexto(
-          valor: descripcion,
+          valor: _ctrl.descripcion,
           placeholder: 'Describe lo ocurrido',
           maxLines: 4,
-          isInvalid: descripcion.isEmpty && touched['descripcion']!,
-          onValorChange: (v) => setState(() {
-            descripcion = v;
-            if (v.isNotEmpty) touched['descripcion'] = true;
-          }),
+          isInvalid: _ctrl.descripcion.isEmpty && _ctrl.touched['descripcion']!,
+          onValorChange: (v) {
+            _ctrl.descripcion = v;
+            if (v.isNotEmpty) _ctrl.touched['descripcion'] = true;
+            _actualizar();
+          },
         ),
         const SizedBox(height: 20),
         Label('Grupo poblacional'),
         DropdownGris(
-          valor: grupo,
+          valor: _ctrl.grupo,
           placeholder: 'Selecciona el grupo',
-          opciones: _grupos,
-          isInvalid: grupo.isEmpty && touched['grupo']!,
-          onSeleccionar: (v) => setState(() {
-            grupo = v;
-            touched['grupo'] = true;
-          }),
+          opciones: _ctrl.grupos,
+          isInvalid: _ctrl.grupo.isEmpty && _ctrl.touched['grupo']!,
+          onSeleccionar: (v) {
+            _ctrl.grupo = v;
+            _ctrl.touched['grupo'] = true;
+            _actualizar();
+          },
         ),
         const SizedBox(height: 20),
         Label('Tipo de entorno'),
         DropdownGris(
-          valor: entorno,
+          valor: _ctrl.entorno,
           placeholder: 'Selecciona el entorno',
-          opciones: _entornos,
-          isInvalid: entorno.isEmpty && touched['entorno']!,
-          onSeleccionar: (v) => setState(() {
-            entorno = v;
-            touched['entorno'] = true;
-          }),
+          opciones: _ctrl.entornos,
+          isInvalid: _ctrl.entorno.isEmpty && _ctrl.touched['entorno']!,
+          onSeleccionar: (v) {
+            _ctrl.entorno = v;
+            _ctrl.touched['entorno'] = true;
+            _actualizar();
+          },
         ),
         const SizedBox(height: 20),
         Label('Personas involucradas'),
@@ -640,20 +417,21 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           children: [
             Expanded(
               child: CampoTexto(
-                valor: personaTemp,
+                valor: _ctrl.personaTemp,
                 placeholder: 'Agregar persona',
-                isInvalid: personas.isEmpty && touched['personas']!,
-                onValorChange: (v) => setState(() {
-                  personaTemp = v;
-                  if (v.isNotEmpty) touched['personas'] = true;
-                }),
+                isInvalid: _ctrl.personas.isEmpty && _ctrl.touched['personas']!,
+                onValorChange: (v) {
+                  _ctrl.personaTemp = v;
+                  if (v.isNotEmpty) _ctrl.touched['personas'] = true;
+                  _actualizar();
+                },
               ),
             ),
             const SizedBox(width: 10),
             SizedBox(
               height: 54,
               child: ElevatedButton(
-                onPressed: _agregarPersona,
+                onPressed: _ctrl.agregarPersona,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primario,
                   shape: RoundedRectangleBorder(
@@ -665,21 +443,21 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
             ),
           ],
         ),
-        if (personas.isNotEmpty) ...[
+        if (_ctrl.personas.isNotEmpty) ...[
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: List.generate(personas.length, (index) {
+            children: List.generate(_ctrl.personas.length, (index) {
               return Chip(
-                label: Text(personas[index]),
+                label: Text(_ctrl.personas[index]),
                 deleteIcon: const Icon(Icons.close, size: 18),
-                onDeleted: () => _eliminarPersona(index),
+                onDeleted: () => _ctrl.eliminarPersona(index),
               );
             }),
           ),
         ],
-        if (personas.isEmpty && touched['personas']!)
+        if (_ctrl.personas.isEmpty && _ctrl.touched['personas']!)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
@@ -704,11 +482,12 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         ),
         const SizedBox(height: 8),
         FilaIcono(
-          valor: fecha,
+          valor: _ctrl.fecha,
           placeholder: 'Selecciona la fecha',
-          isInvalid: fecha.isEmpty && touched['fecha']!,
+          isInvalid: _ctrl.fecha.isEmpty && _ctrl.touched['fecha']!,
           onTap: () {
-            setState(() => touched['fecha'] = true);
+            _ctrl.touched['fecha'] = true;
+            _actualizar();
             _seleccionarFecha();
           },
           icono: const Icon(Icons.calendar_month, color: AppColors.textoGris),
@@ -716,13 +495,14 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         const SizedBox(height: 28),
         Label('Lugar del incidente'),
         CampoTexto(
-          valor: lugar,
+          valor: _ctrl.lugar,
           placeholder: 'Escribe el lugar del incidente',
-          isInvalid: lugar.isEmpty && touched['lugar']!,
-          onValorChange: (v) => setState(() {
-            lugar = v;
-            if (v.isNotEmpty) touched['lugar'] = true;
-          }),
+          isInvalid: _ctrl.lugar.isEmpty && _ctrl.touched['lugar']!,
+          onValorChange: (v) {
+            _ctrl.lugar = v;
+            if (v.isNotEmpty) _ctrl.touched['lugar'] = true;
+            _actualizar();
+          },
         ),
         const SizedBox(height: 24),
       ],
@@ -734,15 +514,16 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ..._instituciones.map((inst) {
+        ..._ctrl.instituciones.map((inst) {
           final nombre = inst.nombre;
           final descripcionInst = inst.descripcion ?? '';
-          final sel = institucion == nombre;
+          final sel = _ctrl.institucion == nombre;
           return GestureDetector(
-            onTap: () => setState(() {
-              institucion = nombre;
-              touched['institucion'] = true;
-            }),
+            onTap: () {
+              _ctrl.institucion = nombre;
+              _ctrl.touched['institucion'] = true;
+              _actualizar();
+            },
             child: Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -785,19 +566,20 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
                   ),
                   Radio<String>(
                     value: nombre,
-                    groupValue: institucion,
+                    groupValue: _ctrl.institucion,
                     activeColor: AppColors.primario,
-                    onChanged: (v) => setState(() {
-                      institucion = v ?? '';
-                      touched['institucion'] = true;
-                    }),
+                    onChanged: (v) {
+                      _ctrl.institucion = v ?? '';
+                      _ctrl.touched['institucion'] = true;
+                      _actualizar();
+                    },
                   ),
                 ],
               ),
             ),
           );
         }),
-        if (institucion.isEmpty && touched['institucion']!)
+        if (_ctrl.institucion.isEmpty && _ctrl.touched['institucion']!)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
@@ -812,6 +594,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
 
   // ─────────── PASO 4 ───────────
   Widget _buildPaso4() {
+    final imagenes = _ctrl.imagenes;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -825,7 +608,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           width: double.infinity,
           height: 54,
           child: ElevatedButton.icon(
-            onPressed: _seleccionarImagenes,
+            onPressed: _ctrl.seleccionarImagenes,
             icon: const Icon(Icons.camera_alt, color: Colors.white),
             label: Text(
               imagenes.isEmpty
@@ -871,7 +654,10 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
                       right: 12,
                       top: 2,
                       child: GestureDetector(
-                        onTap: () => setState(() => imagenes.removeAt(index)),
+                        onTap: () {
+                          _ctrl.imagenes.removeAt(index);
+                          _actualizar();
+                        },
                         child: const CircleAvatar(
                           radius: 12,
                           backgroundColor: Colors.red,
@@ -887,161 +673,6 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         ],
         const SizedBox(height: 24),
       ],
-    );
-  }
-}
-
-// ─────────── WIDGET: Indicador de pasos ───────────
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.pasoActual});
-  final int pasoActual;
-
-  static const _colores = [
-    Color(0xFFFFCA28),
-    Color(0xFFFF8C00),
-    Color(0xFFFFCA28),
-    Color(0xFFFFCA28),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.fondoPantalla,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(4, (i) {
-          final activo = i == pasoActual;
-          final completado = i < pasoActual;
-          return Row(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: activo
-                      ? _colores[i]
-                      : completado
-                          ? AppColors.primario.withOpacity(0.2)
-                          : const Color(0xFFD9D9D9),
-                ),
-                alignment: Alignment.center,
-                child: completado
-                    ? const Icon(Icons.check, size: 20, color: AppColors.primario)
-                    : Text(
-                        '${i + 1}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: activo ? Colors.white : const Color(0xFF9E9E9E),
-                        ),
-                      ),
-              ),
-              if (i < 3)
-                Container(
-                  width: 32,
-                  height: 2,
-                  color: completado
-                      ? AppColors.primario.withOpacity(0.4)
-                      : const Color(0xFFD9D9D9),
-                ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}
-
-// ─────────── WIDGET: Botones inferiores ───────────
-class _BotonesInferiores extends StatelessWidget {
-  const _BotonesInferiores({
-    required this.paso,
-    required this.totalPasos,
-    required this.onAnterior,
-    required this.onSiguiente,
-    required this.onEnviar,
-  });
-
-  final int paso;
-  final int totalPasos;
-  final VoidCallback onAnterior;
-  final VoidCallback onSiguiente;
-  final VoidCallback onEnviar;
-
-  @override
-  Widget build(BuildContext context) {
-    final esPrimero = paso == 0;
-    final esUltimo  = paso == totalPasos - 1;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      decoration: BoxDecoration(
-        color: AppColors.fondoPantalla,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // ── Botón Anterior (oculto en paso 1) ──
-          if (!esPrimero) ...[
-            Expanded(
-              child: SizedBox(
-                height: 54,
-                child: OutlinedButton(
-                  onPressed: onAnterior,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.primario, width: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Text(
-                    'Anterior',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppColors.primario,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-          ],
-
-          // ── Botón Siguiente / Denunciar ──
-          Expanded(
-            child: SizedBox(
-              height: 54,
-              child: ElevatedButton(
-                onPressed: esUltimo ? onEnviar : onSiguiente,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secundario,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  esUltimo ? 'Denunciar' : 'Siguiente',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
