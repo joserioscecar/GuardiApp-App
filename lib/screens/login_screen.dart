@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/colores.dart';
-import '../services/login_service.dart';
-import '../services/sesion_storage.dart';
+import '../controllers/login_controller.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
 
@@ -14,16 +13,28 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
-  bool _cargando = false;
 
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
+  final _ctrl = LoginController();
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.addListener(_actualizar);
+  }
 
   @override
   void dispose() {
+    _ctrl.removeListener(_actualizar);
+    _ctrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
+  }
+
+  void _actualizar() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _login() async {
@@ -40,11 +51,8 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() => _cargando = true);
     try {
-      final sesion = await LoginService()
-          .iniciarSesion(email: email, password: password);
-      await SesionStorage().guardar(sesion);
+      await _ctrl.iniciarSesion(email: email, password: password);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -57,8 +65,6 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      if (mounted) setState(() => _cargando = false);
     }
   }
 
@@ -68,7 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.fondoPantalla,
       body: Stack(
         children: [
-          // Arco decorativo sutil de fondo
           Positioned(
             bottom: -90,
             right: -70,
@@ -155,8 +160,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             shadowColor: AppColors.secundario.withOpacity(0.5),
                             shape: const StadiumBorder(),
                           ),
-                          onPressed: _cargando ? null : _login,
-                          child: _cargando
+                          onPressed: _ctrl.cargando ? null : _login,
+                          child: _ctrl.cargando
                               ? const SizedBox(
                                   width: 24,
                                   height: 24,

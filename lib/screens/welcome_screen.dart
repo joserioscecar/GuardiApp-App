@@ -5,7 +5,7 @@ import 'what_can_you_do_screen.dart';
 import '../theme/colores.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -51,13 +51,13 @@ class WelcomeScreen extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: size.height * 0.57,
+              height: size.height * 0.52,
               width: double.infinity,
               decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(232)),
+                color: AppColors.fondoPantalla,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(190)),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 50),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -12,7 +12,8 @@ class DetalleDenunciaScreen extends StatelessWidget {
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
-    return '$apiBaseUrl/$path';
+    final limpio = path.startsWith('/') ? path.substring(1) : path;
+    return '$apiBaseUrl/$limpio';
   }
 
   @override
