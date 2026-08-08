@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,55 +9,16 @@ import '../widgets/label.dart';
 import 'success_screen.dart';
 import '../theme/colores.dart';
 import '../widgets/dropdown_gris.dart';
-
-// ── Datos ──────────────────────────────────
-const _lugares = [
-  'Centro', 'Norte', 'Sur', 'Oriente', 'Occidente',
-  'Barrio El Bosque', 'Barrio La Palma',
-];
-
-const _tiposDiscriminacion = [
-  'Discriminación LGBTIQ+', 'Racismo o xenofobia', 'Bullying escolar',
-  'Violencia de género', 'Acoso laboral', 'Maltrato institucional',
-];
-
-const _subtipos = {
-  'Discriminación LGBTIQ+': ['Agresión verbal', 'Exclusión', 'Violencia'],
-  'Racismo o xenofobia':    ['Insultos raciales', 'Exclusión'],
-  'Bullying escolar':       ['Acoso', 'Hostigamiento'],
-  'Violencia de género':    ['Acoso', 'Violencia psicológica'],
-  'Acoso laboral':          ['Presión', 'Discriminación laboral'],
-  'Maltrato institucional': ['Negación de servicios'],
-};
-
-const _tiposAcoso     = ['Acoso sexual', 'Acoso escolar', 'Acoso laboral', 'Ciberbullying'];
-const _tiposViolencia = ['Física', 'Psicológica', 'Sexual', 'Económica'];
-const _gruposPob      = [
-  'Mujer', 'Hombre', 'LGBTIQ+', 'Adulto mayor',
-  'Persona con discapacidad', 'Migrante', 'Niño/Niña',
-];
-
-const _entornos = {
-  'Familiar':      ['Padre', 'Madre', 'Hermanos', 'Abuelos', 'Tíos', 'Otros'],
-  'Social':        ['Calle', 'Parque', 'Otros'],
-  'Académico':     ['Colegios', 'Universidades', 'Fundaciones', 'Corporaciones'],
-  'Institucional': ['Entidades públicas', 'Clínicas', 'EPS', 'IPS', 'ESE'],
-};
-
-const _instituciones = [
-  {
-    'nombre': 'Fiscalía',
-    'descripcion': 'Selecciona esta opción si hubo amenazas, agresiones físicas, violencia sexual, extorsión, lesiones, delitos informáticos u otros hechos que puedan constituir un delito.',
-  },
-  {
-    'nombre': 'Defensoría del Pueblo',
-    'descripcion': 'Selecciona esta opción si estás siendo víctima de discriminación, acoso, vulneración de derechos o necesitas acompañamiento y asesoría.',
-  },
-  {
-    'nombre': 'Policía',
-    'descripcion': 'Selecciona esta opción si existe una emergencia, una amenaza en curso, riesgo para tu integridad o necesitas atención inmediata.',
-  },
-];
+import '../services/catalogo_item.dart';
+import '../services/genero_service.dart';
+import '../services/tipo_discriminacion_service.dart';
+import '../models/tipo_discriminacion.dart';
+import '../models/institucion.dart';
+import '../services/grupo_poblacional_service.dart';
+import '../services/entorno_service.dart';
+import '../services/institucion_service.dart';
+import '../services/denuncia_service.dart';
+import '../services/sesion_storage.dart';
 
 // ─────────────────────────────────────────────────────────
 class DenunciarScreen extends StatefulWidget {
@@ -72,6 +32,21 @@ class DenunciarScreen extends StatefulWidget {
 class _DenunciarScreenState extends State<DenunciarScreen> {
   int _paso = 0;
 
+  bool _cargando = true;
+  bool _error = false;
+
+  List<String> _generos = [];
+  Map<String, String> _generoIdPorNombre = {};
+  List<String> _tipos = [];
+  Map<String, String> _tipoIdPorNombre = {};
+  Map<String, List<SubtipoDiscriminacion>> _subtiposPorTipoId = {};
+  List<String> _grupos = [];
+  Map<String, String> _grupoIdPorNombre = {};
+  List<String> _entornos = [];
+  Map<String, String> _entornoIdPorNombre = {};
+  List<Institucion> _instituciones = [];
+  Map<String, String> _institucionIdPorNombre = {};
+
   String descripcion     = '';
   String lugar           = '';
   String fecha           = '';
@@ -80,12 +55,10 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
   String edad            = '';
   String discriminacion  = '';
   String subDisc         = '';
-  String acoso           = '';
-  String violencia       = '';
   String grupo           = '';
   String entorno         = '';
-  String subEntorno      = '';
-  String personas        = '';
+  List<String> personas  = [];
+  String personaTemp     = '';
   String institucion     = '';
 
   final Map<String, bool> touched = {
@@ -97,11 +70,8 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
     'edad': false,
     'discriminacion': false,
     'subDisc': false,
-    'acoso': false,
-    'violencia': false,
     'grupo': false,
     'entorno': false,
-    'subEntorno': false,
     'personas': false,
     'institucion': false,
   };
@@ -116,6 +86,80 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
     'Evidencias y Envío',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    fecha = DateFormat('dd/MM/yyyy', 'es_ES').format(DateTime.now());
+    _cargarCatalogo();
+  }
+
+  Future<void> _cargarCatalogo() async {
+    setState(() {
+      _cargando = true;
+      _error = false;
+    });
+    try {
+      final results = await Future.wait([
+        GeneroService().listar(),
+        TipoDiscriminacionService().listar(),
+        GrupoPoblacionalService().listar(),
+        EntornoService().listar(),
+        InstitucionService().listar(),
+      ]);
+      if (!mounted) return;
+
+      final generos = results[0] as List<CatalogoItem>;
+      final tipos = results[1] as List<TipoDiscriminacion>;
+      final grupos = results[2] as List<CatalogoItem>;
+      final entornos = results[3] as List<CatalogoItem>;
+      final instituciones = results[4] as List<Institucion>;
+
+      final generoIdPorNombre = <String, String>{
+        for (final g in generos) g.nombre: g.id,
+      };
+      final tipoIdPorNombre = <String, String>{
+        for (final t in tipos) t.nombre: t.id,
+      };
+      final grupoIdPorNombre = <String, String>{
+        for (final g in grupos) g.nombre: g.id,
+      };
+      final entornoIdPorNombre = <String, String>{
+        for (final e in entornos) e.nombre: e.id,
+      };
+      final institucionIdPorNombre = <String, String>{
+        for (final i in instituciones) i.nombre: i.id,
+      };
+      final subtiposPorTipoId = <String, List<SubtipoDiscriminacion>>{};
+      for (final t in tipos) {
+        if (t.subtipos.isNotEmpty) {
+          subtiposPorTipoId[t.id] = t.subtipos;
+        }
+      }
+
+      setState(() {
+        _generos = generos.map((g) => g.nombre).toList();
+        _generoIdPorNombre = generoIdPorNombre;
+        _tipos = tipos.map((t) => t.nombre).toList();
+        _tipoIdPorNombre = tipoIdPorNombre;
+        _subtiposPorTipoId = subtiposPorTipoId;
+        _grupos = grupos.map((g) => g.nombre).toList();
+        _grupoIdPorNombre = grupoIdPorNombre;
+        _entornos = entornos.map((e) => e.nombre).toList();
+        _entornoIdPorNombre = entornoIdPorNombre;
+        _instituciones = instituciones;
+        _institucionIdPorNombre = institucionIdPorNombre;
+        _cargando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('Error cargando catálogo: $e');
+      setState(() {
+        _error = true;
+        _cargando = false;
+      });
+    }
+  }
+
   bool _esPasoValido() {
     switch (_paso) {
       case 0:
@@ -126,7 +170,6 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
             descripcion.isNotEmpty &&
             grupo.isNotEmpty &&
             entorno.isNotEmpty &&
-            subEntorno.isNotEmpty &&
             personas.isNotEmpty;
       case 1:
         return fecha.isNotEmpty && lugar.isNotEmpty;
@@ -150,7 +193,6 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           touched['descripcion'] = true;
           touched['grupo'] = true;
           touched['entorno'] = true;
-          touched['subEntorno'] = true;
           touched['personas'] = true;
           break;
         case 1:
@@ -164,6 +206,29 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
     });
   }
 
+  void _agregarPersona() {
+    if (personaTemp.trim().isEmpty) {
+      setState(() {
+        touched['personas'] = true;
+      });
+      return;
+    }
+
+    if (!personas.contains(personaTemp.trim())) {
+      setState(() {
+        personas.add(personaTemp.trim());
+        personaTemp = '';
+        touched['personas'] = true;
+      });
+    }
+  }
+
+  void _eliminarPersona(int index) {
+    setState(() {
+      personas.removeAt(index);
+    });
+  }
+
   void _siguiente() {
     if (_esPasoValido()) {
       setState(() => _paso++);
@@ -173,8 +238,11 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
   }
 
   void _anterior() {
-    if (_paso > 0) setState(() => _paso--);
-    else widget.onBack();
+    if (_paso > 0) {
+      setState(() => _paso--);
+    } else {
+      widget.onBack();
+    }
   }
 
   Future<void> _seleccionarFecha() async {
@@ -215,28 +283,31 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
     }
   }
 
-  void _enviar() {
-    final datosDenuncia = {
-      'descripcion': descripcion,
-      'lugar': lugar,
-      'fecha': fecha,
-      'tipoDenunciante': tipoDenunciante,
-      'genero': genero,
-      'edad': edad,
-      'discriminacion': discriminacion,
-      'subDisc': subDisc,
-      'acoso': acoso,
-      'violencia': violencia,
-      'grupo': grupo,
-      'entorno': entorno,
-      'subEntorno': subEntorno,
-      'personas': personas,
-      'institucion': institucion,
-      'imagenes': imagenes.map((img) => img.path).toList(),
+  Future<void> _enviar() async {
+    final subTipoId = _subtiposPorTipoId[_tipoIdPorNombre[discriminacion]]
+            ?.firstWhere(
+              (st) => st.nombre == subDisc,
+              orElse: () => SubtipoDiscriminacion(id: '', nombre: subDisc),
+            )
+            .id ??
+        '';
+
+    final campos = <String, String>{
+      'TipoDenunciante': tipoDenunciante == 'Víctima' ? 'Victima' : 'Testigo',
+      'Discriminacion': _tipoIdPorNombre[discriminacion] ?? '',
+      'SubTipo': subTipoId,
+      'Genero': _generoIdPorNombre[genero] ?? '',
+      'Edad': edad,
+      'Grupo': _grupoIdPorNombre[grupo] ?? '',
+      'Entorno': _entornoIdPorNombre[entorno] ?? '',
+      'InstitucionId': _institucionIdPorNombre[institucion] ?? '',
+      'Descripcion': descripcion,
+      'Fecha': fecha,
+      'Lugar': lugar,
     };
 
-    debugPrint('--- DATOS CAPTURADOS ---');
-    datosDenuncia.forEach((key, value) => debugPrint('$key: $value'));
+    debugPrint('--- ENVIANDO DENUNCIA ---');
+    campos.forEach((key, value) => debugPrint('$key: $value'));
 
     showDialog(
       context: context,
@@ -246,15 +317,45 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
       ),
     );
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SuccessScreen()),
-        );
+    try {
+      final token = await SesionStorage().obtenerToken();
+      if (token == null || token.isEmpty) {
+        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Debes iniciar sesión para enviar una denuncia'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
       }
-    });
+
+      final radicado = await DenunciaService().enviar(
+        token: token,
+        campos: campos,
+        personas: personas,
+        rutasImagenes: imagenes.map((img) => img.path).toList(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SuccessScreen(radicado: radicado),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo enviar la denuncia: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -273,37 +374,84 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           onPressed: _anterior,
         ),
       ),
-      body: Column(
-        children: [
-          _StepIndicator(pasoActual: _paso),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            child: Text(
-              _titulosPaso[_paso],
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textoOscuro,
+      body: _buildCuerpo(),
+    );
+  }
+
+  Widget _buildCuerpo() {
+    if (_cargando) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primario),
+      );
+    }
+
+    if (_error) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.cloud_off, size: 48, color: AppColors.textoGris),
+              const SizedBox(height: 12),
+              Text(
+                'No se pudo cargar el catálogo de la denuncia.\nVerifica tu conexión e inténtalo de nuevo.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(color: AppColors.textoGris),
               ),
-              textAlign: TextAlign.center,
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _cargarCatalogo,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primario,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Reintentar',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _StepIndicator(pasoActual: _paso),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          child: Text(
+            _titulosPaso[_paso],
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textoOscuro,
             ),
+            textAlign: TextAlign.center,
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildPasoActual(),
-            ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _buildPasoActual(),
           ),
-          // ── Botones Anterior / Siguiente ──
-          _BotonesInferiores(
-            paso: _paso,
-            totalPasos: 4,
-            onAnterior: _anterior,
-            onSiguiente: _siguiente,
-            onEnviar: _enviar,
-          ),
-        ],
-      ),
+        ),
+        // ── Botones Anterior / Siguiente ──
+        _BotonesInferiores(
+          paso: _paso,
+          totalPasos: 4,
+          onAnterior: _anterior,
+          onSiguiente: _siguiente,
+          onEnviar: _enviar,
+        ),
+      ],
     );
   }
 
@@ -315,6 +463,14 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
       case 3: return _buildPaso4();
       default: return const SizedBox();
     }
+  }
+
+  List<String> get _subtiposSeleccionados {
+    final tipoId = _tipoIdPorNombre[discriminacion];
+    if (tipoId == null) return [];
+    return (_subtiposPorTipoId[tipoId] ?? const [])
+        .map((s) => s.nombre)
+        .toList();
   }
 
   // ─────────── PASO 1 ───────────
@@ -378,7 +534,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           padding: const EdgeInsets.all(4),
           child: Wrap(
             spacing: 8,
-            children: ['Mujer', 'Hombre', 'Otro'].map((g) {
+            children: _generos.map((g) {
               final sel = genero == g;
               return GestureDetector(
                 onTap: () => setState(() {
@@ -421,7 +577,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         DropdownGris(
           valor: discriminacion,
           placeholder: 'Selecciona la situación',
-          opciones: _tiposDiscriminacion,
+          opciones: _tipos,
           isInvalid: discriminacion.isEmpty && touched['discriminacion']!,
           onSeleccionar: (v) => setState(() {
             discriminacion = v;
@@ -434,7 +590,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           DropdownGris(
             valor: subDisc,
             placeholder: 'Selecciona el subtipo',
-            opciones: _subtipos[discriminacion] ?? [],
+            opciones: _subtiposSeleccionados,
             isInvalid: subDisc.isEmpty && touched['subDisc']!,
             onSeleccionar: (v) => setState(() {
               subDisc = v;
@@ -459,7 +615,7 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         DropdownGris(
           valor: grupo,
           placeholder: 'Selecciona el grupo',
-          opciones: _gruposPob,
+          opciones: _grupos,
           isInvalid: grupo.isEmpty && touched['grupo']!,
           onSeleccionar: (v) => setState(() {
             grupo = v;
@@ -471,38 +627,66 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         DropdownGris(
           valor: entorno,
           placeholder: 'Selecciona el entorno',
-          opciones: _entornos.keys.toList(),
+          opciones: _entornos,
           isInvalid: entorno.isEmpty && touched['entorno']!,
           onSeleccionar: (v) => setState(() {
             entorno = v;
-            subEntorno = '';
             touched['entorno'] = true;
           }),
         ),
-        if (entorno.isNotEmpty) ...[
+        const SizedBox(height: 20),
+        Label('Personas involucradas'),
+        Row(
+          children: [
+            Expanded(
+              child: CampoTexto(
+                valor: personaTemp,
+                placeholder: 'Agregar persona',
+                isInvalid: personas.isEmpty && touched['personas']!,
+                onValorChange: (v) => setState(() {
+                  personaTemp = v;
+                  if (v.isNotEmpty) touched['personas'] = true;
+                }),
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                onPressed: _agregarPersona,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primario,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        if (personas.isNotEmpty) ...[
           const SizedBox(height: 12),
-          DropdownGris(
-            valor: subEntorno,
-            placeholder: 'Especifica el lugar',
-            opciones: _entornos[entorno] ?? [],
-            isInvalid: subEntorno.isEmpty && touched['subEntorno']!,
-            onSeleccionar: (v) => setState(() {
-              subEntorno = v;
-              touched['subEntorno'] = true;
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(personas.length, (index) {
+              return Chip(
+                label: Text(personas[index]),
+                deleteIcon: const Icon(Icons.close, size: 18),
+                onDeleted: () => _eliminarPersona(index),
+              );
             }),
           ),
         ],
-        const SizedBox(height: 20),
-        Label('Personas involucradas'),
-        CampoTexto(
-          valor: personas,
-          placeholder: 'Escribe los nombres',
-          isInvalid: personas.isEmpty && touched['personas']!,
-          onValorChange: (v) => setState(() {
-            personas = v;
-            if (v.isNotEmpty) touched['personas'] = true;
-          }),
-        ),
+        if (personas.isEmpty && touched['personas']!)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Debes agregar al menos una persona involucrada.',
+              style: GoogleFonts.inter(color: Colors.red, fontSize: 12),
+            ),
+          ),
         const SizedBox(height: 24),
       ],
     );
@@ -531,14 +715,13 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
         ),
         const SizedBox(height: 28),
         Label('Lugar del incidente'),
-        DropdownGris(
+        CampoTexto(
           valor: lugar,
-          placeholder: 'Selecciona el lugar',
-          opciones: _lugares,
+          placeholder: 'Escribe el lugar del incidente',
           isInvalid: lugar.isEmpty && touched['lugar']!,
-          onSeleccionar: (v) => setState(() {
+          onValorChange: (v) => setState(() {
             lugar = v;
-            touched['lugar'] = true;
+            if (v.isNotEmpty) touched['lugar'] = true;
           }),
         ),
         const SizedBox(height: 24),
@@ -552,8 +735,8 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ..._instituciones.map((inst) {
-          final nombre = inst['nombre']!;
-          final descripcionInst = inst['descripcion']!;
+          final nombre = inst.nombre;
+          final descripcionInst = inst.descripcion ?? '';
           final sel = institucion == nombre;
           return GestureDetector(
             onTap: () => setState(() {
@@ -586,15 +769,17 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
                             color: AppColors.textoOscuro,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          descripcionInst,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.textoGris,
-                            height: 1.4,
+                        if (descripcionInst.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            descripcionInst,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textoGris,
+                              height: 1.4,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -832,7 +1017,7 @@ class _BotonesInferiores extends StatelessWidget {
             const SizedBox(width: 12),
           ],
 
-          // ── Botón Siguiente / Enviar ──
+          // ── Botón Siguiente / Denunciar ──
           Expanded(
             child: SizedBox(
               height: 54,
@@ -845,7 +1030,7 @@ class _BotonesInferiores extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  esUltimo ? 'Enviar Denuncia' : 'Siguiente',
+                  esUltimo ? 'Denunciar' : 'Siguiente',
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

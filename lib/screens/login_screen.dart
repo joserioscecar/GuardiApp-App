@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/colores.dart';
+import '../services/login_service.dart';
+import '../services/sesion_storage.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
 
@@ -12,6 +14,53 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
+  bool _cargando = false;
+
+  final TextEditingController _emailCtrl = TextEditingController();
+  final TextEditingController _passwordCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa tu correo y contraseña'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _cargando = true);
+    try {
+      final sesion = await LoginService()
+          .iniciarSesion(email: email, password: password);
+      await SesionStorage().guardar(sesion);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al iniciar sesión: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,12 +114,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       _buildField(
                         hint: 'Correo electrónico',
                         icon: Icons.mail_outline_rounded,
+                        controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 14),
                       _buildField(
                         hint: 'Contraseña',
                         icon: Icons.lock_outline_rounded,
+                        controller: _passwordCtrl,
                         obscure: _obscure,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _login(),
                         toggleObscure: () => setState(() => _obscure = !_obscure),
                       ),
 
@@ -100,20 +155,24 @@ class _LoginScreenState extends State<LoginScreen> {
                             shadowColor: AppColors.secundario.withOpacity(0.5),
                             shape: const StadiumBorder(),
                           ),
-                          onPressed: () {
-                            // No validar credenciales, navegar a Home
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => const HomeScreen()),
-                            );
-                          },
-                          child: Text(
-                            'Iniciar sesión',
-                            style: TextStyle(
-                              color: AppColors.textoOscuro,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
+                          onPressed: _cargando ? null : _login,
+                          child: _cargando
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: AppColors.textoOscuro,
+                                  ),
+                                )
+                              : Text(
+                                  'Iniciar sesión',
+                                  style: TextStyle(
+                                    color: AppColors.textoOscuro,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
 
@@ -202,11 +261,19 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildField({
     required String hint,
     required IconData icon,
+    required TextEditingController controller,
     bool obscure = false,
+    TextInputType? keyboardType,
+    TextInputAction? textInputAction,
     VoidCallback? toggleObscure,
+    ValueChanged<String>? onSubmitted,
   }) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
       style: TextStyle(color: AppColors.textoOscuro, fontSize: 15),
       decoration: InputDecoration(
         hintText: hint,

@@ -3,26 +3,131 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'denunciar_sceen.dart';
+import 'login_screen.dart';
 import '../theme/colores.dart';
+import '../services/sesion_storage.dart';
+import '../services/denuncia_service.dart';
+import '../models/denuncia_item.dart';
+import '../config/api_config.dart';
+import 'detalle_denuncia_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.initialTab = 0});
+  final int initialTab;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int currentIndex = 0;
+  late int currentIndex = widget.initialTab;
+  String _nombreUsuario = '';
+  String _correoUsuario = '';
+
+  List<DenunciaItem> _denuncias = [];
+  bool _cargandoDenuncias = false;
+  bool _errorDenuncias = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarSesion();
+  }
+
+  Future<void> _cargarSesion() async {
+    final sesion = await SesionStorage().obtener();
+    if (mounted) {
+      setState(() {
+        _nombreUsuario = sesion?.nombreCompleto ?? '';
+        _correoUsuario = sesion?.correo ?? '';
+      });
+    }
+  }
+
+  Future<void> _cerrarSesion() async {
+    await SesionStorage().cerrarSesion();
+    if (!mounted) return;
+    _irALogin();
+  }
+
+  void _irALogin() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  String _buildImageUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    return '$apiBaseUrl/$path';
+  }
+
+  void _verEvidencias(List<String> imagenes) {
+    final urls = imagenes.map(_buildImageUrl).toList();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _EvidenciasViewer(imagenes: urls),
+      ),
+    );
+  }
+
+  Future<void> _cargarDenuncias() async {
+    setState(() {
+      _cargandoDenuncias = true;
+      _errorDenuncias = false;
+    });
+    try {
+      final token = await SesionStorage().obtenerToken();
+      if (token == null || token.isEmpty) {
+        if (mounted) _irALogin();
+        return;
+      }
+      final denuncias = await DenunciaService().listar(token: token);
+      if (!mounted) return;
+      setState(() {
+        _denuncias = denuncias;
+        _cargandoDenuncias = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorDenuncias = true;
+        _cargandoDenuncias = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.fondoPantalla,
+      appBar: AppBar(
+        backgroundColor: AppColors.primario,
+        foregroundColor: Colors.white,
+        leading: currentIndex != 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() => currentIndex = 0),
+              )
+            : null,
+        title: Text(
+          _tituloPorTab[currentIndex],
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+      ),
       body: _buildBody(context),
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
+
+  static const _tituloPorTab = [
+    'Inicio',
+    'Mis denuncias',
+    'Recursos',
+    'Perfil',
+  ];
 
   Widget _buildBody(BuildContext context) {
     if (currentIndex == 0) {
@@ -30,14 +135,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (currentIndex == 1) {
-      return _emptyPage('Mis denuncias');
+      return _buildDenunciasBody();
     }
 
     if (currentIndex == 2) {
       return _emptyPage('Recursos');
     }
 
-    return _emptyPage('Perfil');
+    return _buildProfileBody();
   }
 
   Widget _buildHomeBody(BuildContext context) {
@@ -95,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hola, Ana',
+                      _nombreUsuario.isNotEmpty ? 'Hola, $_nombreUsuario' : 'Hola',
                       style: GoogleFonts.poppins(
                         color: AppColors.textoOscuro,
                         fontSize: 17,
@@ -111,6 +216,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ],
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: _cerrarSesion,
+                  icon: const Icon(Icons.logout_rounded),
+                  color: Colors.red,
+                  tooltip: 'Cerrar sesión',
                 ),
               ],
             ),
@@ -371,6 +483,310 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildDenunciasBody() {
+    return SafeArea(
+      child: _cargandoDenuncias
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primario),
+            )
+          : _errorDenuncias
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 48, color: AppColors.textoGris),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No se pudieron cargar las denuncias.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(color: AppColors.textoGris),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _cargarDenuncias,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primario,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Reintentar',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _denuncias.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.description_outlined,
+                              size: 56, color: AppColors.textoGris),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No tienes denuncias aún.',
+                            style: GoogleFonts.poppins(
+                              color: AppColors.textoOscuro,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Tus denuncias aparecerán aquí.',
+                            style: GoogleFonts.inter(
+                              color: AppColors.textoGris,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _cargarDenuncias,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                        itemCount: _denuncias.length,
+                        itemBuilder: (context, index) {
+                          final d = _denuncias[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      DetalleDenunciaScreen(denuncia: d),
+                                ),
+                              );
+                            },
+                            child: Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 1,
+                            color: AppColors.fondoCampo,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          d.radicado.isNotEmpty
+                                              ? d.radicado
+                                              : 'Sin radicado',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primario,
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primario
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          d.discriminacion,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.primario,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    d.descripcion,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: AppColors.textoOscuro,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today,
+                                          size: 14,
+                                          color: AppColors.textoGris),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        d.fecha,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: AppColors.textoGris,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      const Icon(Icons.location_on,
+                                          size: 14,
+                                          color: AppColors.textoGris),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          d.lugar,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: AppColors.textoGris,
+                                          ),
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      if (d.evidencias.isNotEmpty)
+                                        GestureDetector(
+                                          onTap: () =>
+                                              _verEvidencias(d.evidencias),
+                                          child: const Icon(
+                                            Icons.image_rounded,
+                                            size: 20,
+                                            color: AppColors.primario,
+                                          ),
+                                        )
+                                      else
+                                        const Icon(
+                                          Icons.image_rounded,
+                                          size: 20,
+                                          color: AppColors.textoGris,
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primario
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Ver detalle',
+                                              style: GoogleFonts.inter(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.primario,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            const Icon(
+                                              Icons.arrow_forward_ios,
+                                              size: 10,
+                                              color: AppColors.primario,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                        },
+                      ),
+                    ),
+    );
+  }
+
+  Widget _buildProfileBody() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primario.withOpacity(0.15),
+              ),
+              child: const Icon(
+                Icons.person_rounded,
+                size: 44,
+                color: AppColors.primario,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _nombreUsuario.isNotEmpty ? _nombreUsuario : 'Usuario',
+              style: GoogleFonts.poppins(
+                color: AppColors.textoOscuro,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (_correoUsuario.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                _correoUsuario,
+                style: GoogleFonts.inter(
+                  color: AppColors.textoGris,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton(
+                onPressed: _cerrarSesion,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Cerrar sesi\u00F3n',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomNavBar() {
     return Container(
       height: 105,
@@ -414,6 +830,9 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           currentIndex = index;
         });
+        if (index == 1) {
+          _cargarDenuncias();
+        }
       },
       child: SizedBox(
         width: 82,
@@ -437,6 +856,68 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EvidenciasViewer extends StatelessWidget {
+  const _EvidenciasViewer({required this.imagenes});
+  final List<String> imagenes;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          '${imagenes.length} evidencia${imagenes.length == 1 ? '' : 's'}',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ),
+      body: PageView.builder(
+        itemCount: imagenes.length,
+        itemBuilder: (context, index) {
+          return InteractiveViewer(
+            child: Center(
+              child: Image.network(
+                imagenes[index],
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: Colors.white,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.broken_image_rounded,
+                          size: 48, color: Colors.white54),
+                      SizedBox(height: 8),
+                      Text(
+                        'No se pudo cargar la imagen',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+        },
       ),
     );
   }

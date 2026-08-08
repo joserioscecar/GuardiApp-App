@@ -3,9 +3,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/colores.dart';
+import 'home_screen.dart';
 
 class SuccessScreen extends StatelessWidget {
-  const SuccessScreen({super.key});
+  const SuccessScreen({super.key, this.radicado = ''});
+  final String radicado;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +80,9 @@ class SuccessScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Hemos recibido tu denuncia.\nTe acompañaremos en el proceso.',
+                      radicado.isNotEmpty
+                          ? 'Tu radicado: $radicado'
+                          : 'Hemos recibido tu denuncia.\nTe acompañaremos en el proceso.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: 15,
@@ -94,8 +98,12 @@ class SuccessScreen extends StatelessWidget {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: () {
-                          // TODO: navegar a la pantalla de "Mis denuncias"
-                          // Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyComplaintsScreen()));
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const HomeScreen(initialTab: 1),
+                            ),
+                            (route) => false,
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.secundario,
