@@ -39,7 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _verificarSesion() async {
-    final token = await SesionStorage().obtenerToken();
+    final token = await SesionStorage().obtenerTokenValido();
     if (!mounted) return;
 
     final destino = (token != null && token.isNotEmpty)

@@ -7,7 +7,7 @@ import 'login_screen.dart';
 import '../theme/colores.dart';
 
 class AuthChoiceScreen extends StatelessWidget {
-  const AuthChoiceScreen({Key? key}) : super(key: key);
+  const AuthChoiceScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class AuthChoiceScreen extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: size.height * 0.80,
+              height: size.height * 0.86,
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: AppColors.fondoPantalla,
@@ -41,17 +41,17 @@ class AuthChoiceScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 70),
                   SvgPicture.asset(
                     'assets/images/logos/N1.svg',
-                    height: 120,
+                    height: 200,
                     fit: BoxFit.contain,
                     colorFilter: const ColorFilter.mode(
                       AppColors.primario,
                       BlendMode.srcIn,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height:40),
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -69,7 +69,7 @@ class AuthChoiceScreen extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           color: AppColors.textoOscuro,
                           fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          fontSize: 18,
                         ),
                       ),
                       onPressed: () {
@@ -80,7 +80,7 @@ class AuthChoiceScreen extends StatelessWidget {
                       },
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 26),
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -106,7 +106,7 @@ class AuthChoiceScreen extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           color: AppColors.textoOscuro,
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontSize: 18,
                         ),
                       ),
                     ),

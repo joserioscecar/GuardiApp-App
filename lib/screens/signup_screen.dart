@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/colores.dart';
+import '../widgets/auth_text_field.dart';
 import '../controllers/signup_controller.dart';
 import 'login_screen.dart';
 
@@ -144,33 +145,33 @@ class _SignupScreenState extends State<SignupScreen> {
 
                     const SizedBox(height: 28),
 
-                    _buildField(
+                    AuthTextField(
                       controller: _nameCtrl,
                       hint: 'Nombre completo',
-                      icon: Icons.person_outline_rounded,
+                      validator: (v) => (v ?? '').isEmpty ? 'Campo requerido' : null,
                     ),
                     const SizedBox(height: 14),
-                    _buildField(
+                    AuthTextField(
                       controller: _emailCtrl,
                       hint: 'Correo electrónico',
-                      icon: Icons.mail_outline_rounded,
                       keyboardType: TextInputType.emailAddress,
+                      validator: (v) => (v ?? '').isEmpty ? 'Campo requerido' : null,
                     ),
                     const SizedBox(height: 14),
-                    _buildField(
+                    AuthTextField(
                       controller: _passCtrl,
                       hint: 'Contraseña',
-                      icon: Icons.lock_outline_rounded,
                       obscure: _obscurePass,
                       toggleObscure: () => setState(() => _obscurePass = !_obscurePass),
+                      validator: (v) => (v ?? '').isEmpty ? 'Campo requerido' : null,
                     ),
                     const SizedBox(height: 14),
-                    _buildField(
+                    AuthTextField(
                       controller: _pass2Ctrl,
                       hint: 'Confirmar contraseña',
-                      icon: Icons.lock_outline_rounded,
                       obscure: _obscurePass2,
                       toggleObscure: () => setState(() => _obscurePass2 = !_obscurePass2),
+                      validator: (v) => (v ?? '').isEmpty ? 'Campo requerido' : null,
                     ),
 
                     const SizedBox(height: 16),
@@ -269,56 +270,6 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscure = false,
-    VoidCallback? toggleObscure,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscure,
-      style: TextStyle(color: AppColors.textoOscuro, fontSize: 15),
-      validator: (v) {
-        if ((v ?? '').isEmpty) return 'Campo requerido';
-        return null;
-      },
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: AppColors.textoGris, fontSize: 14),
-        prefixIcon: Icon(icon, color: AppColors.textoGris, size: 20),
-        suffixIcon: toggleObscure == null
-            ? null
-            : IconButton(
-                icon: Icon(
-                  obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: AppColors.textoGris,
-                  size: 20,
-                ),
-                onPressed: toggleObscure,
-              ),
-        filled: true,
-        fillColor: AppColors.fondoCampo,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.primario, width: 1.4),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
         ),
       ),
     );

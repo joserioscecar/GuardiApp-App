@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _errorDenuncias = false;
     });
     try {
-      final token = await SesionStorage().obtenerToken();
+      final token = await SesionStorage().obtenerTokenValido();
       if (token == null || token.isEmpty) {
         if (mounted) _irALogin();
         return;

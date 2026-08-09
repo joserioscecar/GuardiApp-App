@@ -1,6 +1,7 @@
 class Sesion {
   const Sesion({
     this.token = '',
+    this.refreshToken = '',
     this.expiracion = '',
     this.usuarioId = '',
     this.nombreCompleto = '',
@@ -8,6 +9,7 @@ class Sesion {
   });
 
   final String token;
+  final String refreshToken;
   final String expiracion;
   final String usuarioId;
   final String nombreCompleto;
@@ -26,6 +28,7 @@ class Sesion {
   factory Sesion.fromMap(Map<String, dynamic> json) {
     return Sesion(
       token: (json['token'] as String?) ?? '',
+      refreshToken: (json['refreshToken'] as String?) ?? '',
       expiracion: (json['expiracion'] as String?) ?? '',
       usuarioId: (json['usuarioId'] as String?) ?? '',
       nombreCompleto: (json['nombreCompleto'] as String?) ?? '',
@@ -36,6 +39,7 @@ class Sesion {
   Map<String, dynamic> toMap() {
     return {
       'token': token,
+      'refreshToken': refreshToken,
       'expiracion': expiracion,
       'usuarioId': usuarioId,
       'nombreCompleto': nombreCompleto,

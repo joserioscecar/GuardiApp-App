@@ -223,7 +223,7 @@ class DenunciaFormController extends ChangeNotifier {
       'Lugar': lugar,
     };
 
-    final token = await SesionStorage().obtenerToken();
+    final token = await SesionStorage().obtenerTokenValido();
     if (token == null || token.isEmpty) return null;
 
     final rutas = imagenes.map((img) => img.path).toList();

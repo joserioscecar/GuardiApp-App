@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import '../theme/colores.dart';
+import '../widgets/auth_text_field.dart';
 import '../controllers/login_controller.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
@@ -116,17 +118,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 32),
 
-                      _buildField(
+                      AuthTextField(
                         hint: 'Correo electrónico',
-                        icon: Icons.mail_outline_rounded,
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 14),
-                      _buildField(
+                      AuthTextField(
                         hint: 'Contraseña',
-                        icon: Icons.lock_outline_rounded,
                         controller: _passwordCtrl,
                         obscure: _obscure,
                         textInputAction: TextInputAction.done,
@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           child: Text(
                             '¿Olvidaste tu contraseña?',
-                            style: TextStyle(color: AppColors.textoGris, fontSize: 13),
+                            style: TextStyle(color: AppColors.textoOscuro, fontSize: 16),
                           ),
                         ),
                       ),
@@ -152,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 60,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.secundario,
@@ -259,52 +259,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required String hint,
-    required IconData icon,
-    required TextEditingController controller,
-    bool obscure = false,
-    TextInputType? keyboardType,
-    TextInputAction? textInputAction,
-    VoidCallback? toggleObscure,
-    ValueChanged<String>? onSubmitted,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      onSubmitted: onSubmitted,
-      style: TextStyle(color: AppColors.textoOscuro, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: AppColors.textoGris, fontSize: 14),
-        prefixIcon: Icon(icon, color: AppColors.textoGris, size: 20),
-        suffixIcon: toggleObscure == null
-            ? null
-            : IconButton(
-                icon: Icon(
-                  obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: AppColors.textoGris,
-                  size: 20,
-                ),
-                onPressed: toggleObscure,
-              ),
-        filled: true,
-        fillColor: AppColors.fondoCampo,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.primario, width: 1.4),
-        ),
       ),
     );
   }
