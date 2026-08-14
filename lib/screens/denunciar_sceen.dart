@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:test_flutter/widgets/fila_Icono.dart';
@@ -337,13 +338,22 @@ class _DenunciarScreenState extends State<DenunciarScreen> {
           placeholder: 'Ej: 25',
           keyboardType: TextInputType.number,
           maxLength: 3,
-          isInvalid: _ctrl.edad.isEmpty && _ctrl.touched['edad']!,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          isInvalid: _ctrl.touched['edad']! && !_ctrl.edadValida,
           onValorChange: (v) {
             _ctrl.edad = v;
             if (v.isNotEmpty) _ctrl.touched['edad'] = true;
             _actualizar();
           },
         ),
+        if (_ctrl.touched['edad']! && _ctrl.errorEdad != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              _ctrl.errorEdad!,
+              style: GoogleFonts.inter(color: Colors.red, fontSize: 12),
+            ),
+          ),
         const SizedBox(height: 20),
         Label('¿Qué tipo de situación deseas denunciar?'),
         DropdownGris(

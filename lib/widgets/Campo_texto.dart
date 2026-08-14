@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/colores.dart';
 
@@ -11,6 +12,7 @@ class CampoTexto extends StatelessWidget {
     this.maxLines = 1,
     this.maxLength,
     this.keyboardType,
+    this.inputFormatters,
     this.isInvalid = false,
   });
 
@@ -20,6 +22,7 @@ class CampoTexto extends StatelessWidget {
   final int maxLines;
   final int? maxLength;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final bool isInvalid;
 
   @override
@@ -35,6 +38,7 @@ class CampoTexto extends StatelessWidget {
       maxLines: maxLines,
       maxLength: maxLength,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.inter(color: AppColors.textoOscuro),
       decoration: InputDecoration(
         hintText: placeholder,

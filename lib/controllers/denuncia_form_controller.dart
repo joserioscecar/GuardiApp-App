@@ -60,6 +60,16 @@ class DenunciaFormController extends ChangeNotifier {
   List<XFile> imagenes = [];
   final ImagePicker _picker = ImagePicker();
 
+  bool get edadValida {
+    if (edad.trim().isEmpty) return true;
+    final valor = int.tryParse(edad.trim());
+    return valor != null && valor > 0;
+  }
+
+  String? get errorEdad => edadValida
+      ? null
+      : 'La edad debe ser un número entero positivo.';
+
   List<String> get subtiposSeleccionados {
     final tipoId = tipoIdPorNombre[discriminacion];
     if (tipoId == null) return [];
@@ -73,7 +83,7 @@ class DenunciaFormController extends ChangeNotifier {
       case 0:
         return tipoDenunciante.isNotEmpty &&
             genero.isNotEmpty &&
-            edad.isNotEmpty &&
+            edadValida &&
             discriminacion.isNotEmpty &&
             descripcion.isNotEmpty &&
             grupo.isNotEmpty &&

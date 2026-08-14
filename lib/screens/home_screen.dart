@@ -42,6 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _correoUsuario = sesion?.correo ?? '';
       });
     }
+    if (currentIndex == 1) {
+      _cargarDenuncias();
+    }
   }
 
   Future<void> _cerrarSesion() async {
