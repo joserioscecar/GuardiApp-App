@@ -23,7 +23,7 @@ class SuccessScreen extends StatelessWidget {
             child: Container(
               height: 160,
               decoration: BoxDecoration(
-                color: AppColors.secundario.withOpacity(0.20),
+                color: AppColors.secundario.withValues(alpha: 0.20),
                 borderRadius: BorderRadius.circular(300),
               ),
             ),
@@ -48,7 +48,7 @@ class SuccessScreen extends StatelessWidget {
                             height: 150,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.secundario.withOpacity(0.30),
+                              color: AppColors.secundario.withValues(alpha: 0.30),
                             ),
                           ),
                           FutureBuilder<String>(
@@ -108,7 +108,7 @@ class SuccessScreen extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.secundario,
                           elevation: 2,
-                          shadowColor: AppColors.secundario.withOpacity(0.5),
+                          shadowColor: AppColors.secundario.withValues(alpha: 0.5),
                           shape: const StadiumBorder(),
                         ),
                         child: Text(
@@ -135,7 +135,7 @@ class SuccessScreen extends StatelessWidget {
                           backgroundColor: AppColors.primario,
                           foregroundColor: Colors.white,
                           elevation: 2,
-                          shadowColor: AppColors.primario.withOpacity(0.5),
+                          shadowColor: AppColors.primario.withValues(alpha: 0.5),
                           shape: const StadiumBorder(),
                         ),
                         child: Text(
