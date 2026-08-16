@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:test_flutter/models/catalogo_item.dart';
 import '../models/tipo_discriminacion.dart';
 import '../models/institucion.dart';
-import '../services/catalogo_item.dart';
 import '../services/genero_service.dart';
 import '../services/tipo_discriminacion_service.dart';
 import '../services/grupo_poblacional_service.dart';
