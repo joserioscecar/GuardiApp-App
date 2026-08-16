@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.test_flutter"
+    namespace = "cloud.cecar.guardiapp"
     
     // Actualizamos a 36 como requieren las dependencias
     compileSdk = 36 
@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.test_flutter"
+        applicationId = "cloud.cecar.guardiapp"
         
         // image_picker requiere minSdk 21
         minSdk = flutter.minSdkVersion 
