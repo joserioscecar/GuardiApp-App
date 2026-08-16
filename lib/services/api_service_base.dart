@@ -13,7 +13,7 @@ abstract class ApiServiceBase {
     try {
       final res = await http.get(uri).timeout(const Duration(seconds: 10));
       if (res.statusCode != 200) {
-        throw Exception('Error $res.statusCode al consultar $endpoint');
+        throw Exception('Error ${res.statusCode} al consultar $endpoint');
       }
       final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
       return data.map((item) {

@@ -9,12 +9,14 @@ class LoginService {
     required String password,
   }) async {
     final uri = Uri.parse('$apiBaseUrl/usuarios/login');
+    final body = jsonEncode({'email': email, 'password': password});
+
     try {
       final res = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email, 'password': password}),
+            body: body,
           )
           .timeout(const Duration(seconds: 15));
 

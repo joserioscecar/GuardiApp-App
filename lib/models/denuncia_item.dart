@@ -57,7 +57,7 @@ class DenunciaItem {
       discriminacion: (json['discriminacion'] as String?) ?? '',
       subTipo: (json['subTipo'] as String?) ?? '',
       genero: (json['genero'] as String?) ?? '',
-      edad: (json['edad'] as String?) ?? '',
+      edad: json['edad']?.toString() ?? '',
       grupo: (json['grupo'] as String?) ?? '',
       entorno: (json['entorno'] as String?) ?? '',
       subEntorno: (json['subEntorno'] as String?) ?? '',

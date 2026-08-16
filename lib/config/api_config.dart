@@ -1,4 +1,7 @@
-//const String apiBaseUrl = 'http://localhost:5290';
+//const String apiBaseUrl = 'https://localhost:5290';
 
-const String apiBaseUrl = 'http://guardiapp.cecar.cloud/api';
+const String apiHost = 'http://guardiapp.cecar.cloud';
 
+const String apiBaseUrl = '$apiHost/api';
+
+const String apiHealthUrl = '$apiHost/healthz';

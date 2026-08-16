@@ -16,9 +16,6 @@ class RegistroService {
       'password': password,
     });
 
-    debugPrint('POST $uri');
-    debugPrint('Body: $body');
-
     try {
       final res = await http
           .post(
@@ -29,8 +26,6 @@ class RegistroService {
           .timeout(const Duration(seconds: 15));
 
       final resBody = utf8.decode(res.bodyBytes);
-      debugPrint('Status: ${res.statusCode}');
-      debugPrint('Response: $resBody');
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         return;
@@ -69,7 +64,6 @@ class RegistroService {
       }
       throw Exception('HTTP ${res.statusCode}');
     } on Exception catch (e) {
-      debugPrint('Error: $e');
       throw Exception('No se pudo registrar: $e');
     }
   }

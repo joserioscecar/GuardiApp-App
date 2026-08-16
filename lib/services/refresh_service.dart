@@ -9,8 +9,6 @@ class RefreshService {
     final uri = Uri.parse('$apiBaseUrl/usuarios/refresh');
     final body = jsonEncode({'token': refreshToken});
 
-    debugPrint('POST $uri');
-
     try {
       final res = await http
           .post(
@@ -21,7 +19,6 @@ class RefreshService {
           .timeout(const Duration(seconds: 15));
 
       final resBody = utf8.decode(res.bodyBytes);
-      debugPrint('Refresh status: ${res.statusCode}');
 
       if (res.statusCode == 200) {
         final data = jsonDecode(resBody) as Map<String, dynamic>;
@@ -30,7 +27,6 @@ class RefreshService {
 
       throw Exception(res.statusCode.toString());
     } on Exception catch (e) {
-      debugPrint('Refresh error: $e');
       rethrow;
     }
   }

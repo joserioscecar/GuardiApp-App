@@ -26,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _verificarApi() async {
     try {
       final res = await http
-          .get(Uri.parse('$apiBaseUrl/healthz'))
+          .get(Uri.parse(apiHealthUrl))
           .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         if (mounted) _verificarSesion();
