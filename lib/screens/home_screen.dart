@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return path;
     }
     final limpio = path.startsWith('/') ? path.substring(1) : path;
-    return '$apiBaseUrl/$limpio';
+    return '$apiHost/$limpio';
   }
 
   void _verEvidencias(List<String> imagenes) {
