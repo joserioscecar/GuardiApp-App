@@ -6,7 +6,7 @@ import '../models/sesion.dart';
 
 class RefreshService {
   Future<Sesion> refrescar(String refreshToken) async {
-    final uri = Uri.parse('$apiBaseUrl/api/usuarios/refresh');
+    final uri = Uri.parse('$apiBaseUrl/usuarios/refresh');
     final body = jsonEncode({'token': refreshToken});
 
     debugPrint('POST $uri');

@@ -9,7 +9,7 @@ class RegistroService {
     required String correo,
     required String password,
   }) async {
-    final uri = Uri.parse('$apiBaseUrl/api/usuarios');
+    final uri = Uri.parse('$apiBaseUrl/usuarios');
     final body = jsonEncode({
       'nombreCompleto': nombreCompleto,
       'correo': correo,

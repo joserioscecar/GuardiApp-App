@@ -8,7 +8,7 @@ class LoginService {
     required String email,
     required String password,
   }) async {
-    final uri = Uri.parse('$apiBaseUrl/api/usuarios/login');
+    final uri = Uri.parse('$apiBaseUrl/usuarios/login');
     try {
       final res = await http
           .post(

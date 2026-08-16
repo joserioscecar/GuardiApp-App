@@ -5,7 +5,7 @@ import '../models/institucion.dart';
 
 class InstitucionService {
   Future<List<Institucion>> listar() async {
-    final uri = Uri.parse('$apiBaseUrl/api/instituciones');
+    final uri = Uri.parse('$apiBaseUrl/instituciones');
     try {
       final res = await http.get(uri).timeout(const Duration(seconds: 10));
       if (res.statusCode != 200) {

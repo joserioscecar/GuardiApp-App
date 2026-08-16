@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import 'catalogo_item.dart';
+import '../models/catalogo_item.dart';
 
 abstract class ApiServiceBase {
   Future<List<CatalogoItem>> fetchLista({

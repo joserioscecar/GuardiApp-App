@@ -5,7 +5,7 @@ import '../models/tipo_discriminacion.dart';
 
 class TipoDiscriminacionService {
   Future<List<TipoDiscriminacion>> listar() async {
-    final uri = Uri.parse('$apiBaseUrl/api/tipos-discriminacion');
+    final uri = Uri.parse('$apiBaseUrl/tipos-discriminacion');
     try {
       final res = await http.get(uri).timeout(const Duration(seconds: 10));
       if (res.statusCode != 200) {

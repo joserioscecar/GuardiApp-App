@@ -11,7 +11,7 @@ class DenunciaService {
     List<String> personas = const [],
     List<String> rutasImagenes = const [],
   }) async {
-    final uri = Uri.parse('$apiBaseUrl/api/denuncias');
+    final uri = Uri.parse('$apiBaseUrl/denuncias');
     final request = http.MultipartRequest('POST', uri);
     request.headers['Authorization'] = 'Bearer $token';
     request.fields.addAll(campos);
@@ -48,7 +48,7 @@ class DenunciaService {
   }
 
   Future<List<DenunciaItem>> listar({required String token}) async {
-    final uri = Uri.parse('$apiBaseUrl/api/denuncias');
+    final uri = Uri.parse('$apiBaseUrl/denuncias');
     try {
       final res = await http.get(
         uri,
