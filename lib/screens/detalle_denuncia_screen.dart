@@ -133,6 +133,24 @@ class DetalleDenunciaScreen extends StatelessWidget {
                               width: 100,
                               height: 100,
                               fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  width: 100,
+                                  height: 100,
+                                  color: AppColors.fondoCampo,
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primario,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                               errorBuilder: (_, _, _) => Container(
                                 width: 100,
                                 height: 100,
