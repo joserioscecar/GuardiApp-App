@@ -12,6 +12,7 @@ class AuthChoiceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final panelHeight = size.height * 0.86;
 
     return Scaffold(
       backgroundColor: AppColors.primario,
@@ -30,7 +31,7 @@ class AuthChoiceScreen extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: size.height * 0.86,
+              height: panelHeight,
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: AppColors.fondoPantalla,
@@ -38,9 +39,12 @@ class AuthChoiceScreen extends StatelessWidget {
                     BorderRadius.vertical(top: Radius.circular(140)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: panelHeight),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
                   const SizedBox(height: 70),
                   SvgPicture.asset(
                     'assets/images/logos/N1.svg',
@@ -129,7 +133,9 @@ class AuthChoiceScreen extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 24),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

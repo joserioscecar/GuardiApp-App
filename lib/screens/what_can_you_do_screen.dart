@@ -31,7 +31,7 @@ class WhatCanYouDoScreen extends StatelessWidget {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 22),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
