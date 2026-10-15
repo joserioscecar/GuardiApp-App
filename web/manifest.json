@@ -1,11 +1,11 @@
 {
-    "name": "test_flutter",
-    "short_name": "test_flutter",
+    "name": "GuardiApp",
+    "short_name": "GuardiApp",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FEF3C6",
+    "theme_color": "#FF5800",
+    "description": "GuardiApp",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
