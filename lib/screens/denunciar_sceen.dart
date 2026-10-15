@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:test_flutter/widgets/fila_Icono.dart';
+import 'package:guardiapp/widgets/fila_Icono.dart';
 import '../widgets/Campo_texto.dart';
 import '../widgets/label.dart';
 import '../widgets/dropdown_gris.dart';

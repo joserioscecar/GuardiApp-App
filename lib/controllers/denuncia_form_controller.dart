@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:test_flutter/models/catalogo_item.dart';
+import 'package:guardiapp/models/catalogo_item.dart';
 import '../models/tipo_discriminacion.dart';
 import '../models/institucion.dart';
 import '../services/genero_service.dart';
