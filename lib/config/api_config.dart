@@ -1,6 +1,8 @@
-//const String apiBaseUrl = 'https://localhost:5290';
-
-const String apiHost = 'http://guardiapp.cecar.cloud';
+// Override at build time with --dart-define=API_HOST=https://your-api.example.
+const String apiHost = String.fromEnvironment(
+  'API_HOST',
+  defaultValue: 'https://guardiapp.cecar.cloud',
+);
 
 const String apiBaseUrl = '$apiHost/api';
 

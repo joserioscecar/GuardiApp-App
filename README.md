@@ -2,6 +2,21 @@
 
 A new Flutter project.
 
+## Build web y API
+
+La app usa `https://guardiapp.cecar.cloud` por defecto. Para otro servidor:
+
+```sh
+flutter build web --dart-define=API_HOST=https://guardiapp.cecar.cloud
+```
+
+`API_HOST` debe ser el origen del API, sin `/api` ni barra final. Una web
+servida por HTTPS debe usar un API HTTPS. Si la web y el API tienen orígenes
+distintos, el backend debe permitir el origen de la web mediante CORS tanto
+en `/healthz` como en `/api/*`, incluyendo las solicitudes OPTIONS y los
+headers `Authorization` y `Content-Type`. La pantalla inicial comprueba
+`/healthz`: un bloqueo CORS en esa ruta también muestra «Sin conexión».
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
